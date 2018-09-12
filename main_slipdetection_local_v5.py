@@ -22,6 +22,8 @@ class slip_detection_reaction:
         self.kernal4 = self.make_kernal(8)
         self.kernal5 = self.make_kernal(3)
         self.kernal6 = self.make_kernal(50) 
+        self.kernal_size = 40
+        self.kernal7 = self.make_kernal(self.kernal_size)
         self.M = np.load('M_GS2.npy')
         # self.ROImask = np.load('mask_GS2.npy')
         self.index = 0
@@ -195,12 +197,13 @@ class slip_detection_reaction:
     def dispOpticalFlow(self,im_cal,x,y):
         # mask = np.zeros_like(im_cal)
         mask2 = np.zeros_like(im_cal)
-        for i in range(len(x)):
+        for i in range(self.u_diff.shape[0]):
              # mask = cv2.line(mask, (int(x[i]-self.acc_u[i]*2),int(y[i]-self.acc_v[i]*2)),(int(x[i]),int(y[i])), [0, 80, 0], 2)
              mask2 = cv2.line(mask2, (int(x[i]+self.u_diff[i]),int(y[i]+self.v_diff[i])),(int(x[i]),int(y[i])), [0, 0, 80], 2)
              # mask2 = cv2.line(mask2, (int(x[i]),int(y[i])),(int(x[i]),int(y[i])), [0, 0, 80], 2)
 
         img = cv2.add(im_cal/1.2,mask2)
+        # img = im_cal+50
         # img = cv2.add(img,mask)
         # img = cv2.add(img,mask2)
         # edge = np.dstack((np.zeros_like(self.edge_region), self.edge_region*255, np.zeros_like(self.edge_region))).astype(np.float32)
@@ -214,7 +217,7 @@ class slip_detection_reaction:
         # for i in range(len(x)):
             # cv2.putText(img,str(self.vel_diff[i]),(int(x[i]),int(y[i])), font, 0.2,(255,255,255),1,cv2.LINE_AA)
         cv2.imshow("force_flow",img.astype(np.uint8))
-        cv2.waitKey(1)
+        cv2.waitKey(50)
         
     def call_back(self,data):
         t = time.time()
@@ -241,7 +244,7 @@ class slip_detection_reaction:
                 self.initial_flag = False
 
             im_cal,im_tosave = self.calibration_v2(raw_imag)
-            # cv2.imwrite('/home/siyuan/Documents/2019_ICRA_slip_detection/use_this/data/rotation/raw/raw_'+ str(self.img_counter) + '.jpg',im_tosave)
+            # cv2.imwrite('/home/siyuan/Documents/2019_ICRA_slip_detection/Incipient_slip_detection_with_GelSlim/data_figure2/warp_'+ str(self.img_counter) + '.jpg',im_tosave)
 
             self.contactmask = self.contact_detection(im_cal)   
             # print np.sum(self.contactmask)
@@ -276,11 +279,12 @@ class slip_detection_reaction:
             im_cal,im_tosave = self.calibration_v2(raw_imag)
             self.contactmask = self.contact_detection(im_cal)  
             # self.ROI, self.ROI_big =  self.ROI_calculate()
-            p_region = cv2.erode(self.contactmask/255 , self.kernal6, iterations=1) 
+
+            p_region = cv2.erode(self.contactmask/255 , self.kernal7, iterations=1) 
             # cv2.imshow('contact_image',(p_region*50+self.rgb2gray(im_cal)).astype(np.uint8))
             # cv2.waitKey(1)
             
-            # cv2.imwrite('/home/siyuan/Documents/2019_ICRA_slip_detection/use_this/data/rotation/raw/raw_'+ str(self.img_counter) + '.jpg',im_tosave)
+            # cv2.imwrite('/home/siyuan/Documents/2019_ICRA_slip_detection/Incipient_slip_detection_with_GelSlim/data_figure2/warp_'+ str(self.img_counter) + '.jpg',im_tosave)
             # self.ROI_img = im_cal[self.y_minb:self.y_maxb,self.x_minb:self.x_maxb].astype(np.uint8)
 
             # np.save('/home/siyuan/Documents/2019_ICRA_slip_detection/use_this/data/rotation/transfer_matrix/matrix_' + str(self.img_counter) + '.npy',self.tran_matrix)
@@ -298,8 +302,12 @@ class slip_detection_reaction:
             # good_list = list(set(range(len(x2)))-set(self.trash_list)) 
             inbound_check = p_region[np.array(y2).astype(np.uint16),np.array(x2).astype(np.uint16)]*np.array(range(len(x2)))
             final_list = list(set(inbound_check)- set([0]) - set(self.trash_list))# - set(range(len(u),len(x2))))
-            # print "number of points inside", len(final_list), np.sum(p_region[np.array(y2).astype(np.uint16),np.array(x2).astype(np.uint16)]), len(x2)
-            
+            # print "number of points inside", len(set(inbound_check)) #, np.sum(p_region[np.array(y2).astype(np.uint16),np.array(x2).astype(np.uint16)]), len(x2)
+            if len(final_list) < 4:
+                self.kernal_size -= 10
+                self.kernal_size = np.max((self.kernal_size,1))
+                self.kernal7 = self.make_kernal(self.kernal_size)
+
             # if self.showimage:
             #     if self.marker_refflag:
             #         self.acc_u, self.acc_v = np.asarray(u), np.asarray(v)
@@ -316,7 +324,7 @@ class slip_detection_reaction:
             #                 self.acc_u[i] = 0
             #                 self.acc_v[i] = 0
 
-            print "number of reference points",len(final_list),len(x2),len(self.trash_list)
+            # print "number of reference points",len(final_list),len(x2),len(self.trash_list)
             x2_center = np.expand_dims(np.array(x2)[final_list],axis = 1)
             y2_center = np.expand_dims(np.array(y2)[final_list],axis = 1)
             x1_center = np.expand_dims(np.array(self.x_initial)[final_list],axis = 1)
@@ -325,22 +333,41 @@ class slip_detection_reaction:
             p1_center = np.expand_dims(np.concatenate((x1_center,y1_center),axis = 1),axis = 0)
             self.tran_matrix = cv2.estimateRigidTransform(p1_center,p2_center,False)
 
+
             self.u_sum += np.array(u)
             self.v_sum += np.array(v)
             self.u_sum[self.trash_list] = 0 
             self.v_sum[self.trash_list] = 0 
 
-            u_estimate, v_estimate = self.estimate_uv(x2,y2,final_list)
-            self.vel_diff = np.sqrt((u_estimate - self.u_sum)**2 + (v_estimate - self.v_sum)**2)
-            self.u_diff = u_estimate - self.u_sum
-            self.v_diff = v_estimate - self.v_sum
-            self.numofslip = np.sum(self.vel_diff > 4.0)
-            self.slip_indicator = self.numofslip > 3
-            # else:
-            #     self.slip_indicator = True 
-                # print -np.sort(-self.vel_diff,axis = None)
+            if self.tran_matrix is not None:
+                u_estimate, v_estimate = self.estimate_uv(x2,y2,final_list)
+                self.vel_diff = np.sqrt((u_estimate - self.u_sum)**2 + (v_estimate - self.v_sum)**2)
+                self.u_diff = u_estimate - self.u_sum
+                self.v_diff = v_estimate - self.v_sum
+                self.numofslip = np.sum(self.vel_diff > 3.5)
+                # print "number of marker", self.numofslip
+                self.slip_indicator = self.numofslip > 3
+
+                if self.showimage:
+                    self.dispOpticalFlow(im_cal,x2,y2)
+            else: 
+                self.ROI, self.ROI_big =  self.ROI_calculate()
+                self.x_initial = self.x2_raw
+                self.y_initial = self.y2_raw 
+                self.x1_last = self.x2_raw
+                self.y1_last = self.y2_raw
+                x2 = self.x2_raw
+                y2 = self.y2_raw
+                self.u_sum = np.zeros(len(self.x2_raw))
+                self.v_sum = np.zeros(len(self.x2_raw))
+                self.trash_list = []
+
+            
+            if self.tran_matrix is None and len(final_list) >3:
+                self.slip_indicator = True
+
             if self.slip_indicator: 
-                print "slip!!!!!!!!!!!!!!!!"
+                print("slip!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") 
                 self.slip_indicator = False
                 self.ROI, self.ROI_big =  self.ROI_calculate()
                 self.x_initial = self.x2_raw
@@ -354,13 +381,12 @@ class slip_detection_reaction:
                 self.trash_list = []
 
 
-            if self.showimage:
-                self.dispOpticalFlow(im_cal,x2,y2)
+
 
             self.x1_last = x2
             self.y1_last = y2
             # self.trash_list_last = self.trash_list
-        print 1/(time.time()-t)
+        # print 1/(time.time()-t)
 
             
 def main():

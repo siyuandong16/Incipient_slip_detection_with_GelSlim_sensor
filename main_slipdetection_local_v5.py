@@ -131,7 +131,7 @@ class slip_detection_reaction:
                 u_temp = xy2[min_index,0] - self.x1_last[i]
                 v_temp = xy2[min_index,1] - self.y1_last[i]
 
-                if np.sqrt(u_temp**2+v_temp**2) > 12:
+                if np.sqrt(u_temp**2+v_temp**2) > 10:
                     u_temp = 0
                     v_temp = 0
                     x2.append(self.x1_last[i])
@@ -157,8 +157,19 @@ class slip_detection_reaction:
     def contact_detection(self,im):
         im_sub = im/self.img_blur*70
         im_gray = self.rgb2gray(im_sub).astype(np.uint8)
+
+        mask_blue = (im[:,:,2]<135).astype(np.uint8)
+
+        # mask_color = ((self.im_tosave[:,:,0]>70).astype(np.uint8))*mask_red
+        # cv2.imshow('contact_image',mask_color.astype(np.uint8)*255)
+        # cv2.waitKey(0)
+
+        mask_brightness = im_gray < 90.
+        # cv2.imshow('contact_image',mask_brightness.astype(np.uint8)*255)
+        # cv2.waitKey(0)
         im_canny = cv2.Canny(im_gray,self.lowbar,self.highbar)
-        # cv2.imshow('edge_image',im_canny)
+        im_canny = mask_blue * im_canny * mask_brightness
+        # cv2.imshow('edge_image',im_canny) 
         # cv2.waitKey(0)
         img_d = cv2.dilate(im_canny, self.kernal1, iterations=1)
         img_e = cv2.erode(img_d, self.kernal1, iterations=1)
@@ -199,8 +210,9 @@ class slip_detection_reaction:
         mask2 = np.zeros_like(im_cal)
         for i in range(self.u_diff.shape[0]):
              # mask = cv2.line(mask, (int(x[i]-self.acc_u[i]*2),int(y[i]-self.acc_v[i]*2)),(int(x[i]),int(y[i])), [0, 80, 0], 2)
-             mask2 = cv2.line(mask2, (int(x[i]+self.u_diff[i]),int(y[i]+self.v_diff[i])),(int(x[i]),int(y[i])), [0, 0, 80], 2)
-             # mask2 = cv2.line(mask2, (int(x[i]),int(y[i])),(int(x[i]),int(y[i])), [0, 0, 80], 2)
+             # mask2 = cv2.line(mask2, (int(x[i]+self.u_diff[i]*3),int(y[i]+self.v_diff[i]*3)),(int(x[i]),int(y[i])), [0, 0, 100], 2)
+             mask2 = cv2.line(mask2, (int(x[i]+self.u_estimate[i]*4),int(y[i]+self.v_estimate[i]*4)),(int(x[i]),int(y[i])), [0, 0, 80], 2)
+             mask2 = cv2.line(mask2, (int(x[i]+self.u_sum[i]*4),int(y[i]+self.v_sum[i]*4)),(int(x[i]),int(y[i])), [0, 80, 80], 2)
 
         img = cv2.add(im_cal/1.2,mask2)
         # img = im_cal+50
@@ -209,7 +221,10 @@ class slip_detection_reaction:
         # edge = np.dstack((np.zeros_like(self.edge_region), self.edge_region*255, np.zeros_like(self.edge_region))).astype(np.float32)
         # edge_ref = np.dstack((np.zeros_like(self.edge_region_ref), self.edge_region_ref*255, np.zeros_like(self.edge_region_ref))).astype(np.float32)
         # img = cv2.add(edge/4,img)
-        img[:,:,0] = img[:,:,2]+self.contactmask/7
+        img[:,:,1] = img[:,:,1] + self.contactmask/7
+        img[:,:,2] = img[:,:,2] + self.p_region*30
+        if self.slip_indicator:
+            img = img + self.im_slipsign/2
         # img = cv2.add(edge_ref/2,img)
         # img = cv2.add(img,self.ROI/2)
         # cv2.imwrite('/home/siyuan/Documents/2019_ICRA_slip_detection/use_this/data/rotation/processed/process_' + str(self.img_counter) + '.jpg',img.astype(np.uint8))
@@ -243,8 +258,11 @@ class slip_detection_reaction:
                 # cv2.waitKey(0)
                 self.initial_flag = False
 
-            im_cal,im_tosave = self.calibration_v2(raw_imag)
+            im_cal,self.im_tosave = self.calibration_v2(raw_imag)
+            # print im_cal.shape
             # cv2.imwrite('/home/siyuan/Documents/2019_ICRA_slip_detection/Incipient_slip_detection_with_GelSlim/data_figure2/warp_'+ str(self.img_counter) + '.jpg',im_tosave)
+            self.im_slipsign = np.zeros(im_cal.shape)
+            cv2.putText(self.im_slipsign, 'Slip', (300,100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
             self.contactmask = self.contact_detection(im_cal)   
             # print np.sum(self.contactmask)
@@ -276,11 +294,11 @@ class slip_detection_reaction:
             else:
                 print "No contact"
         else:  #start detecting slip 
-            im_cal,im_tosave = self.calibration_v2(raw_imag)
+            im_cal,self.im_tosave = self.calibration_v2(raw_imag)
             self.contactmask = self.contact_detection(im_cal)  
             # self.ROI, self.ROI_big =  self.ROI_calculate()
 
-            p_region = cv2.erode(self.contactmask/255 , self.kernal7, iterations=1) 
+            self.p_region = cv2.erode(self.contactmask/255 , self.kernal7, iterations=1) 
             # cv2.imshow('contact_image',(p_region*50+self.rgb2gray(im_cal)).astype(np.uint8))
             # cv2.waitKey(1)
             
@@ -300,13 +318,13 @@ class slip_detection_reaction:
             # print 1/(time.time()-t)
             self.trash_list = sorted(set(self.trash_list))
             # good_list = list(set(range(len(x2)))-set(self.trash_list)) 
-            inbound_check = p_region[np.array(y2).astype(np.uint16),np.array(x2).astype(np.uint16)]*np.array(range(len(x2)))
+            inbound_check = self.p_region[np.array(y2).astype(np.uint16),np.array(x2).astype(np.uint16)]*np.array(range(len(x2)))
             final_list = list(set(inbound_check)- set([0]) - set(self.trash_list))# - set(range(len(u),len(x2))))
             # print "number of points inside", len(set(inbound_check)) #, np.sum(p_region[np.array(y2).astype(np.uint16),np.array(x2).astype(np.uint16)]), len(x2)
-            if len(final_list) < 4:
-                self.kernal_size -= 10
-                self.kernal_size = np.max((self.kernal_size,1))
-                self.kernal7 = self.make_kernal(self.kernal_size)
+            # if len(final_list) < 4:
+            #     self.kernal_size -= 10
+            #     self.kernal_size = np.max((self.kernal_size,1))
+            #     self.kernal7 = self.make_kernal(self.kernal_size)
 
             # if self.showimage:
             #     if self.marker_refflag:
@@ -340,14 +358,14 @@ class slip_detection_reaction:
             self.v_sum[self.trash_list] = 0 
 
             if self.tran_matrix is not None:
-                u_estimate, v_estimate = self.estimate_uv(x2,y2,final_list)
-                self.vel_diff = np.sqrt((u_estimate - self.u_sum)**2 + (v_estimate - self.v_sum)**2)
-                self.u_diff = u_estimate - self.u_sum
-                self.v_diff = v_estimate - self.v_sum
-                self.numofslip = np.sum(self.vel_diff > 3.5)
+                self.u_estimate, self.v_estimate = self.estimate_uv(x2,y2,final_list)
+                self.vel_diff = np.sqrt((self.u_estimate - self.u_sum)**2 + (self.v_estimate - self.v_sum)**2)
+                self.u_diff = self.u_estimate - self.u_sum
+                self.v_diff = self.v_estimate - self.v_sum
+                self.numofslip = np.sum(self.vel_diff > 2.5)
                 # print "number of marker", self.numofslip
                 self.slip_indicator = self.numofslip > 3
-
+                # raw_input("Press Enter to continue...")
                 if self.showimage:
                     self.dispOpticalFlow(im_cal,x2,y2)
             else: 

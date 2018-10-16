@@ -1,27 +1,19 @@
 #!/usr/bin/env python
 
 
-from sensor_msgs.msg import CompressedImage
-import numpy as np
-import time
-from scipy import ndimage
-import matplotlib.pyplot as plt
-from visualization_msgs.msg import *
-import rospy, math, cv2, os, pickle
-
 from sensor_msgs.msg import CompressedImage,JointState
+from std_msgs.msg import Bool
 import numpy as np
 import time
 from scipy import ndimage
 import matplotlib.pyplot as plt
 from visualization_msgs.msg import *
-from gripper import *
-from ik.helper import *
+# from gripper import *
+# from ik.helper import *
 from visualization_msgs.msg import *
-from robot_comm.srv import *
-from wsg_50_common.msg import Status
+# from robot_comm.srv import *
+# from wsg_50_common.msg import Status
 import rospy, math, cv2, os, pickle
-
 
 
 class slip_detection_reaction:
@@ -57,6 +49,7 @@ class slip_detection_reaction:
         self.marker_refflag = True
         self.showimage = True 
         self.slip_indicator = False 
+        self.pub = rospy.Publisher('slip_monitor', Bool, queue_size=1)
         self.image_sub = rospy.Subscriber("/rpi/gelsight/raw_image2/compressed",CompressedImage,self.call_back)
 
 
@@ -330,6 +323,13 @@ class slip_detection_reaction:
             # cv2.waitKey(1)
 
             x2,y2,u,v = self.flow_calculate_v3(keypoints)
+
+            self.trash_list = sorted(set(self.trash_list))
+            self.u_sum += np.array(u)
+            self.v_sum += np.array(v)
+            self.u_sum[self.trash_list] = 0 
+            self.v_sum[self.trash_list] = 0 
+
             if self.refresh:
                 self.x_initial = self.x2_raw
                 self.y_initial = self.y2_raw 
@@ -342,8 +342,6 @@ class slip_detection_reaction:
                 self.trash_list = []
                 self.refresh = False 
 
-            # print 1/(time.time()-t)
-            self.trash_list = sorted(set(self.trash_list))
             # good_list = list(set(range(len(x2)))-set(self.trash_list)) 
             inbound_check = self.p_region[np.array(y2).astype(np.uint16),np.array(x2).astype(np.uint16)]*np.array(range(len(x2)))
             final_list = list(set(inbound_check)- set([0]) - set(self.trash_list))# - set(range(len(u),len(x2))))
@@ -378,11 +376,6 @@ class slip_detection_reaction:
             p1_center = np.expand_dims(np.concatenate((x1_center,y1_center),axis = 1),axis = 0)
             self.tran_matrix = cv2.estimateRigidTransform(p1_center,p2_center,False)
 
-
-            self.u_sum += np.array(u)
-            self.v_sum += np.array(v)
-            self.u_sum[self.trash_list] = 0 
-            self.v_sum[self.trash_list] = 0 
 
             if self.tran_matrix is not None:
                 self.u_estimate, self.v_estimate = self.estimate_uv(x2,y2,final_list)
@@ -427,6 +420,8 @@ class slip_detection_reaction:
                 self.trash_list = []
                 self.refresh = True
 
+            self.pub.publish(self.slip_indicator)
+
 
 
 
@@ -435,21 +430,21 @@ class slip_detection_reaction:
             # self.trash_list_last = self.trash_list
         # print 1/(time.time()-t)
 
-def close_gripper_f(grasp_speed=50, grasp_force=15):
-    graspinGripper(grasp_speed=grasp_speed, grasp_force=grasp_force)
+# def close_gripper_f(grasp_speed=50, grasp_force=15):
+#     graspinGripper(grasp_speed=grasp_speed, grasp_force=grasp_force)
 
-def open_gripper():
-    open(speed=50)
+# def open_gripper():
+#     open(speed=50)
 
             
 def main():
     print "start"
     rospy.init_node('slip_detector', anonymous=True)
-    open_gripper()
-    time.sleep(2)
-    force_initial = 10
-    close_gripper_f(50,force_initial)
-    time.sleep(2)
+    # open_gripper()
+    # time.sleep(2)
+    # force_initial = 10
+    # close_gripper_f(50,force_initial)
+    # time.sleep(2)
     slip_detector = slip_detection_reaction()
     rospy.spin()
 

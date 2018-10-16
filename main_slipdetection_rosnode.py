@@ -405,6 +405,9 @@ class slip_detection_reaction:
             if self.tran_matrix is None and len(final_list) >3:
                 self.slip_indicator = True
 
+
+            self.pub.publish(self.slip_indicator)
+            
             if self.slip_indicator: 
                 print("slip!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!") 
                 self.slip_indicator = False
@@ -420,7 +423,7 @@ class slip_detection_reaction:
                 self.trash_list = []
                 self.refresh = True
 
-            self.pub.publish(self.slip_indicator)
+            
 
 
 

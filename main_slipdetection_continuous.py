@@ -5,7 +5,6 @@ from sensor_msgs.msg import CompressedImage,JointState
 from std_msgs.msg import Bool
 import numpy as np
 import time
-from scipy import ndimage
 import matplotlib.pyplot as plt
 from visualization_msgs.msg import *
 # from gripper import *
@@ -13,7 +12,7 @@ from visualization_msgs.msg import *
 from visualization_msgs.msg import *
 # from robot_comm.srv import *
 # from wsg_50_common.msg import Status
-import rospy, math, cv2, os, pickle
+import rospy, cv2, os
 
 
 class slip_detection_reaction:

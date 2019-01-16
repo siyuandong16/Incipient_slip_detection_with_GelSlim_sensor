@@ -4,4 +4,4 @@ This is the code to detect incipient slip with GelSlim sensor.
 
 need ROS, OPENCV
 
-main function is 
+main function is main_slipdetection_continuous.py

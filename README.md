@@ -15,3 +15,5 @@ software: OpenCV >= 3.0, matplotlib
 1. capture a GelSlim image with no contact (I used 427*320 resolution). Save it with the name of "reference_image.png" or other names. Change the name in line 32 in the "sensor_calibration.py" file.
 
 2. run sensor_calibration.py and it will let you click four points in the image. The four points should be the four corners of a square shape (in physical world). I usualy select 4 black markers since I know the gaps bwteen markers are all the same. 
+
+![](sensor_calibration.png)

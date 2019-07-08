@@ -25,4 +25,11 @@ software: OpenCV >= 3.0, matplotlib
 </p>
 
 ## Instruction for incipient slip detection
-to be done
+"main_slip_detection_gs1_427_320.py" and "main_slip_detection_gs2_427_320.py" are the main function for incipient slip detection. They are for the 2 sesnors, which has slight diffetent outputs. 
+
+1. change the rostopic name in line 60 to your own image subscriber rostopic name 
+2. change the M matrix in line 29 to your onw warping matrix, which is generated in the calibration process
+3. change the cropping range in line 83 according to your own image 
+4. change the image size in line 35
+5. change the threshold for canny edge detection between line 38-41. I used different thresholds for upper and lower part of the image.
+6. change the threshold for slip detection in line 52 & 53. 

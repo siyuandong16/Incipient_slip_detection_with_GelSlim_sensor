@@ -31,7 +31,7 @@ class slip_detection_reaction:
         self.kernal8 = self.make_kernal(2,'rect')
         self.kernal9 = self.make_kernal(2,'rect')
         self.kernal10 = self.make_kernal(45,'circle')
-        self.M = np.load('M_gs2_newSensor_small.npy') 
+        self.M = np.load('M_gs2_newSensor_427_320.npy') 
         # self.ROImask = np.load('mask_GS2.npy        self.previous_slip = False
         self.previous_u_sum = np.array([0])
         self.previous_v_sum = np.array([0])
@@ -59,9 +59,10 @@ class slip_detection_reaction:
         self.slip_indicator = False 
         self.slip_monitor = ChannelFloat32()
         self.slip_pub = rospy.Publisher('/raspicam_node2/slip_monitor', ChannelFloat32, queue_size=1)
+        #change to your own rostopic name to subsribe gelslim raw images
         self.image_sub = rospy.Subscriber("/raspicam_node2/image/compressed",CompressedImage,self.call_back,queue_size = 1,buff_size=2**24)
         self.s = rospy.Service('raspicam_node2/restart_detector', std_srvs.srv.Empty, self.restart_detector_server)
-        self.useSlipDetection = False 
+        self.useSlipDetection = True   #True to detect slip, False to detect collision  
         self.collideThre = 1.5
 
     def rgb2gray(self,rgb):
@@ -81,7 +82,7 @@ class slip_detection_reaction:
         # imgwc = imgw[5:-10,70:-55,:]
         # imgwc = imgw[3:-10,85:-75,:]
         # imgwc = imgw[:,73:-83,:]
-        imgwc = imgw[:,50:-50,:]
+        imgwc = imgw[:,50:-50,:]   #change the crop range 
      
         # cv2.imshow('imgwc',imgwc)
         # cv2.waitKey(1)

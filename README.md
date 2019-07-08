@@ -23,3 +23,6 @@ software: OpenCV >= 3.0, matplotlib
 <p align="center">
   <img width="327" height="320" src="Calibrated image.png">
 </p>
+
+## Instruction for incipient slip detection
+to be done

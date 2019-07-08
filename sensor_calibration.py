@@ -29,9 +29,9 @@ def calculateM(im,length,width):
 
 
 if __name__ == "__main__":
-    im = cv2.imread('sample_img_gelsight1_427_320.png')  #read a empty raw image 
+    im = cv2.imread('reference_image.png')  #read a empty raw image 
     calibrate = False  #set to true if do calbiration, False to view the calibrated image
-    cali_file_name = 'M_gs1_newSensor_427_320.npy'
+    cali_file_name = 'M_matrix_427_320.npy'
     if calibrate:
         M = calculateM(im,14,14)
         np.save(cali_file_name,M)

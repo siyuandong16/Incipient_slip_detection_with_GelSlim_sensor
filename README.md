@@ -17,5 +17,9 @@ software: OpenCV >= 3.0, matplotlib
 2. run sensor_calibration.py and it will let you click four points in the image. The four points should be the four corners of a square shape (in physical world). I usualy select 4 black markers since I know the gaps bwteen markers are all the same. 
 
 <p align="center">
-  <img width="450" height="338" src="sensor_calibration.png">
+  <img width="375" height="281" src="sensor_calibration.png">
+</p>
+3. Change the cropping boundary in line 41 if necessary. The calibrated image should look like this:
+<p align="center">
+  <img width="327" height="320" src="Calibrated image.png">
 </p>

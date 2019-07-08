@@ -8,10 +8,6 @@ import time
 from scipy import ndimage
 import matplotlib.pyplot as plt
 from visualization_msgs.msg import *
-# from gripper import *
-# from ik.helper import *
-# from robot_comm.srv import *
-# from wsg_50_common.msg import Status
 import rospy, math, cv2, os, pickle
 import std_srvs.srv
 

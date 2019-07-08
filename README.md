@@ -1,4 +1,4 @@
-# Incipient_slip_detection_with_GelSlim
+# Incipient slip detection with GelSlim tactile sensor
 
 This is the code for the paper "Maintaining Grasps within Slipping Bound by Monitoring Incipient Slip" in 2019 ICRA. 
 

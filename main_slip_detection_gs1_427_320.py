@@ -11,7 +11,6 @@ from visualization_msgs.msg import *
 import rospy, math, cv2, os, pickle
 import std_srvs.srv
 
-
 class slip_detection_reaction:
 
     def __init__(self):
